@@ -2,9 +2,71 @@ import os
 import pandas as pd
 from pathlib import Path
 from transformers import BertTokenizer
+from sklearn.preprocessing import LabelEncoder
+from sklearn.utils.validation import column_or_1d
+from torch.utils.data import Dataset
+import torch
 
 # make path to home directory
 home = os.path.expanduser("~")
+
+# CLASSES
+class ClassificationDataset(Dataset):
+    def __init__(self, df, tokenizer, target1_encoder, target2_encoder, device):
+        self.df = df
+        self.tokenizer = tokenizer
+        self.target1_encoder = target1_encoder
+        self.target2_encoder = target2_encoder
+        self.device = device
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        # Get raw text and labels
+        text = self.df.iloc[idx]['raw_words']
+        target1 = self.df.iloc[idx]['target1']
+        target2 = self.df.iloc[idx]['target2']
+
+        # Tokenize text
+        encoding = self.tokenizer(text, padding=True, truncation=True, return_tensors="pt")
+
+        # Get input_ids and attention_mask
+        input_ids = encoding['input_ids'].squeeze(0).to(self.device)  # remove the batch dimension
+        attention_mask = encoding['attention_mask'].squeeze(0).to(self.device)
+
+        # Get sequence length (this is needed for your LSTM)
+        seq_len = input_ids.size(0)
+
+        # Return all necessary items for the model
+        return {
+            'input_ids': input_ids,
+            'attention_mask': attention_mask,
+            'seq_len': seq_len,
+            'target1': torch.tensor(target1, dtype=torch.long).to(self.device),  # Ensure it's a tensor of long integers
+            'target2': torch.tensor(target2, dtype=torch.long).to(self.device),  # Ensure it's a tensor of long integers
+        }
+
+class CustomLabelEncoder(LabelEncoder):
+    '''
+    Modifies the sklearn LabelEncoder to use the inputted labels without sorting them
+    '''
+    def fit(self, y):
+        y = column_or_1d(y, warn=True)
+        self.classes_ = pd.Series(y).unique()
+        return self
+    def fit_transform(self, y):
+        y = column_or_1d(y, warn=True)
+        self.classes_ = pd.Series(y).unique()
+        
+        return [self.classes_.tolist().index(item) for item in y]
+    def transform(self, y):
+        return [self.classes_.tolist().index(item) for item in y]
+    
+# FUNCTIONS
+def replace_label(df, label, replacement, label_col):
+    df[label_col] = df[label_col].apply(lambda x: x if x != label else replacement)
+
 
 
 def data_process(device, tar1_labels=None, tar2_labels=None):
