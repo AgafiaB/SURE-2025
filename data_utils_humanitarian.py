@@ -133,3 +133,13 @@ def data_process(device, tar1_labels=None, tar2_labels=None):
     test_dataset = ClassificationDataset(test_df, tokenizer, target1_encoder, target2_encoder, device=device)
 
     return train_dataset, dev_dataset, test_dataset, target1_encoder, target2_encoder
+
+def calculate_class_weights(dataset, num_classes, device):
+    class_counts = np.zeros(num_classes)
+    for instance in dataset:
+        # get the class of the instance, which indexes class_counts
+        class_counts[instance['target2']] += 1
+        
+    class_weights = 1.0 / class_counts
+    class_weights = class_weights / np.sum(class_weights)
+    return torch.tensor(class_weights, dtype=torch.float32).to(device)
