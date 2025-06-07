@@ -143,3 +143,11 @@ def calculate_class_weights(dataset, num_classes, device):
     class_weights = 1.0 / class_counts
     class_weights = class_weights / np.sum(class_weights)
     return torch.tensor(class_weights, dtype=torch.float32).to(device)
+
+def total_acc(pred_tar1, true_tar1, pred_tar2, true_tar2):
+    total_count, correct_count = 0.0, 0.0
+    for p_class, r_class, p_tag, r_tag in zip(pred_tar1, true_tar1, pred_tar2, true_tar2):
+        if p_class == r_class and p_tag == r_tag:
+            correct_count += 1.0
+        total_count += 1.0
+    return 1.0 * correct_count / total_count  
