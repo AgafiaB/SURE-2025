@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertModel
 import torch.nn.utils.rnn as rnn_utils
+import copy
 
 
 def focal_loss_multiclass(inputs, targets, alpha=1, gamma=2):
@@ -23,6 +24,65 @@ def focal_loss_multiclass(inputs, targets, alpha=1, gamma=2):
     focal_loss = -alpha * (1 - pt) ** gamma * torch.sum(log_prob * targets_one_hot, dim=-1)
     
     return focal_loss.mean()
+
+def bibert_pipeline(tweet_dicts, tokenizer, bibert, target1_id2label, 
+                    target2_id2label, device='cpu', custom_batch_size=16):
+    """
+    Processes a list of tweet dictionaries through a BiBERT model pipeline, assigning predicted labels and tags.
+    Args:
+        tweet_dicts (list of dict): List of dictionaries, each containing a 'tweet' key with the tweet text.
+        tokenizer (transformers.PreTrainedTokenizer): Tokenizer to preprocess tweet texts.
+        bibert (object): BiBERT model object with a `predict` method.
+        target1_id2label (dict): Mapping from target 1 class indices to label names.
+        target2_id2label (dict): Mapping from target 2 class indices to tag names.
+        device (str, optional): Device to run the model on ('cpu' or 'cuda'). Defaults to 'cpu'.
+        custom_batch_size (int, optional): Number of tweets to process per batch. Defaults to 16.
+    Returns:
+        list of dict: Deep copy of input tweet_dicts, with added 'label' and 'tag' keys for each tweet, containing the predicted class and tag.
+    """
+
+    labeled_dicts = copy.deepcopy(tweet_dicts)
+    
+    batch_size = custom_batch_size
+    num_full_batches = len(tweet_dicts) // batch_size # if you have 33 tweets, this would be 2
+    last_batch_len = len(tweet_dicts) % batch_size # if you have 33 tweets, this would be 1
+
+    for i in range(num_full_batches):
+        tweets = [tweet_dict['tweet'] for tweet_dict in tweet_dicts[i*batch_size:i*batch_size+batch_size]]
+        tokenized_inputs = tokenizer(tweets, padding=True, truncation=True, return_tensors='pt')
+        tokenized_inputs.to(device)
+        seq_len = tokenized_inputs['attention_mask'].sum(dim=1).to('cpu')
+    
+        informative_pred, tag_pred = bibert.predict(tokenized_inputs['input_ids'], tokenized_inputs['attention_mask'], seq_len, flags=2)
+    
+        informative_pred = informative_pred
+        tag_pred = tag_pred
+    
+        # assert(len(tweets) == len(informative_pred))
+
+        for t, tweet in enumerate(tweets): # 16 tweets, each tweet from batch i 
+            loc = t + i*batch_size # this gets the t tweet from the current ith batch # if t is 1, we're on batch 1 so i is 1, then this would be 1 + 16 = 17
+            labeled_dicts[loc]['label'] = target1_id2label[int(informative_pred[t])]
+            labeled_dicts[loc]['tag'] = target2_id2label[int(tag_pred[t])]
+
+    if last_batch_len > 0:
+        tweets = [tweet_dict['tweet'] for tweet_dict in tweet_dicts[(num_full_batches-1)*batch_size : (num_full_batches-1)*batch_size + last_batch_len]]
+        tokenized_inputs = tokenizer(tweets, padding=True, truncation=True, return_tensors='pt')
+        tokenized_inputs.to(device)
+        seq_len = tokenized_inputs['attention_mask'].sum(dim=1).to('cpu')
+    
+        informative_pred, tag_pred = bibert.predict(tokenized_inputs['input_ids'], tokenized_inputs['attention_mask'], seq_len, flags=2)
+    
+        informative_pred = informative_pred
+        tag_pred = tag_pred
+        for t, tweet in enumerate(tweets): # 16 tweets, each tweet from batch i 
+            loc = t + (num_full_batches - 1)*batch_size 
+            labeled_dicts[loc]['label']  = target1_id2label[int(informative_pred[t])]
+            labeled_dicts[loc]['tag'] = target2_id2label[int(tag_pred[t])]
+    
+            
+    return labeled_dicts
+    
 
 # The below model is adapted from the paper and code from this project: https://github.com/SCMCmodel/scmc
 # TODO: make this predict informative/non-informative before humanitarian classes
