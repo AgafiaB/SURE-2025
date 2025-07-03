@@ -97,8 +97,8 @@ class BibertSCV(nn.Module):
         self.m = nn.BatchNorm1d(hidden_size)
         self.dropout = nn.Dropout(p=dropout)
 
-        self.critrion_class = nn.MultiLabelSoftMarginLoss()
-        self.critrion_tag = nn.MultiLabelSoftMarginLoss()
+        self.loss_init_class = nn.MultiLabelSoftMarginLoss()
+        self.loss_init_tag = nn.MultiLabelSoftMarginLoss()
         self.ce_class = nn.CrossEntropyLoss(weight=label_class_weights)
         self.ce_tag = focal_loss_multiclass
         self.ce_tag_alpha=fl_alpha
@@ -192,8 +192,8 @@ class BibertSCV(nn.Module):
         tag_true_z = tag_true_y / torch.sum(tag_true_y, 1, keepdim=True)
 
         # Cross entropy loss for class and tag predictions
-        class_cross_entropy = self.critrion_class(class_pred, class_true_z)
-        tag_cross_entropy = self.critrion_class(tag_pred, tag_true_z)
+        class_cross_entropy = self.loss_init_class(class_pred, class_true_z)
+        tag_cross_entropy = self.loss_init_class(tag_pred, tag_true_z)
 
         return class_cross_entropy, tag_cross_entropy
 
