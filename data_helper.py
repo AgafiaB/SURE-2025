@@ -73,10 +73,10 @@ def ensure_rgb(img):
     if isinstance(img, np.ndarray):
         if img.ndim == 2:  # Grayscale
             # CV2 has channels-last format
-            assert(len(img.expand_dims(axis=0).shape)==3, f"wrong shaped image: {img.shape}")
+            assert len(img.expand_dims(axis=0).shape)==3, f"wrong shaped image: {img.shape}"
             return cv2.cvtColor(img, cv2.COLOR_GRAY2RGB).expand_dims(axis=0)
         elif img.ndim == 3 and img.shape[2] == 3:
-            assert(len(img.shape)==3, f"wrong shaped image: {img.shape}")
+            assert len(img.shape)==3, f"wrong shaped image: {img.shape}"
             return img  # Already RGB
         else:
             raise ValueError("Unsupported image shape for ensure_rgb: {}".format(img.shape))
@@ -148,8 +148,8 @@ def best_transformation(transformations, class1_imgs, class2_imgs):
     score_dict = {}
     for combo in tqdm(combos, total=len(combos)):
         
-        transformed1 = np.expand_dims(apply_transformations(class1_imgs, combo), axis=1)
-        transformed2 = np.expand_dims(apply_transformations(class2_imgs, combo), axis=1)
+        transformed1 = apply_transformations(class1_imgs, combo), axis=1
+        transformed2 = apply_transformations(class2_imgs, combo), axis=1
         
         inter_score = nan_euclidean_distances(transformed1, transformed2).mean()
         intra_score1 = nan_euclidean_distances(transformed1, np.flip(transformed1, axis=0))
