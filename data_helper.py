@@ -119,7 +119,8 @@ def apply_transformations(images, combo):
             else:
                 print(t)
                 raise ValueError(f'Unsupported transformation: {t}')
-            img_feats.append(feat)
+            # flatten prior to concatenation 
+            img_feats.append(feat.flatten())
         # Concatenate all features for this image into a feature vector for one image and append to all_feats
         all_feats.append(np.concatenate(img_feats))
 
