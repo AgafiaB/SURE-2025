@@ -148,12 +148,12 @@ def best_transformation(transformations, class1_imgs, class2_imgs):
     score_dict = {}
     for combo in tqdm(combos, total=len(combos)):
         
-        transformed1 = apply_transformations(class1_imgs, combo), axis=1
-        transformed2 = apply_transformations(class2_imgs, combo), axis=1
+        transformed1 = apply_transformations(class1_imgs, combo)
+        transformed2 = apply_transformations(class2_imgs, combo)
         
         inter_score = nan_euclidean_distances(transformed1, transformed2).mean()
-        intra_score1 = nan_euclidean_distances(transformed1, np.flip(transformed1, axis=0))
-        intra_score2 = nan_euclidean_distances(transformed2, np.flip(transformed2, axis=0))
+        intra_score1 = nan_euclidean_distances(transformed1, np.flip(transformed1, axis=0)).mean()
+        intra_score2 = nan_euclidean_distances(transformed2, np.flip(transformed2, axis=0)).mean()
         score_dict[combo] = {"inter-score": inter_score, "intra-score class 1": intra_score1, "intra-score class 2": intra_score2}
 
     return score_dict
