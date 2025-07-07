@@ -16,6 +16,7 @@ import cv2
 import skimage
 from tqdm import tqdm
 from itertools import combinations
+import pandas as pd
 
 
 class SQLDataset_Humanitarian(Dataset):
@@ -155,3 +156,19 @@ def best_transformation(transformations, class1_imgs, class2_imgs):
         score_dict[combo] = {"inter-score": inter_score, "intra-score class 1": intra_score1, "intra-score class 2": intra_score2}
 
     return score_dict
+
+
+def contrastive_loss(pos_pairs, neg_pairs, margin=.5):
+    """
+    pos_pairs: tensor of shape (N, D) for positive pairs (same class)
+    neg_pairs: tensor of shape (N, D) for negative pairs (different class)
+    """
+    # euclidean distance 
+    pos_dist = torch.norm(pos_pairs[:, 0] - pos_pairs[:, 1], dim=1)
+    neg_dist = torch.norm(neg_pairs[:, 0] - neg_pairs[:, 1], dim=1)
+
+    pos_loss = torch.mean(pos_dist ** 2)
+    # make the embeddings from different classes at least `margin` apart 
+    neg_loss = torch.mean(torch.clamp(margin - neg_dist, min=0) ** 2)
+    
+    return pos_loss + neg_loss
