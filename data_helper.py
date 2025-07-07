@@ -14,11 +14,14 @@ import numpy as np
 import cv2
 import skimage
 from tqdm import tqdm
+from itertools import combinations
 
 # create a Dataset class to retrieve the data
 class SQLDataset_Humanitarian(Dataset):
     def __init__(self, conn, label_col, img_col='image_path', data_dir=Path(os.path.expanduser('~'), 'CrisisMMD_v2.0','CrisisMMD_v2.0'), 
-                 transform=None, target_transform=None, is_train=False, is_test=False, is_val=False, table_name='Images'):
+                 transform=None, target_transform=None, is_train=False, is_test=False, is_val=False, table_name='Images', 
+                 label_dict = {'other_relevant_information': 1, 'affected_individuals': 2, 'infrastructure_and_utility_damage': 3, 'injured_or_dead_people': 4, 
+                               'rescue_volunteering_or_donation_effort': 5, 'not_humanitarian': 0}):
         '''
         Parameters: 
             conn - a mysql.connector object that will be used to retrieve a cursor 
@@ -29,7 +32,8 @@ class SQLDataset_Humanitarian(Dataset):
             target_transform - does nothing as of now, so do not specify this
             is_train | is_val | is_test - choose none or one of these; if none chosen, all data is used 
             table_name - a string that matches the table name; default: "Images"
-        
+            label_dict - a dictionary that maps the labels in the database to integers; default: {'other_relevant_information': 1, 'affected_individuals': 2, 
+                'infrastructure_and_utility_damage': 3, 'injured_or_dead_people': 4,'rescue_volunteering_or_donation_effort': 5, 'not_humanitarian': 0}
         Notes:
             is_train uses 90% of the data
             is_val and is_test each use 5% of the data 
@@ -46,19 +50,19 @@ class SQLDataset_Humanitarian(Dataset):
         self.is_val = is_val
         self.is_test = is_test
         self.table_name = table_name
+        self.label_dict = label_dict
 
         cursor = self.conn.cursor()
 
         # we need a list of available indices 
         # what idxs are available to use for this database? - depends on the dataset type
+        query = f'SELECT COUNT(image_id) FROM {self.table_name}'
+
         if not (self.is_train or self.is_val or self.is_test): # if no dataset type specified
-            query = 'SELECT COUNT(image_id) FROM ' + table_name
             cursor.execute(query)
             count = cursor.fetchone()[0]
             self.possible_sql_idxs = range(count)
         else:
-            
-            query = 'SELECT COUNT(image_id) FROM ' + table_name
             cursor.execute(query)
             count = cursor.fetchone()[0]
             
@@ -88,7 +92,7 @@ class SQLDataset_Humanitarian(Dataset):
             Retrieves a tuple of (torch.tensor, string) where the first object is a 3D tensor of image data and the string is the label
         '''
         # retrieve an image from the sql database
-        return SyntaxError('You need to change this to use humanitarian classes and label column')
+        # return SyntaxError('You need to change this to use humanitarian classes and label column')
 
         cursor = self.conn.cursor()
 
@@ -103,16 +107,17 @@ class SQLDataset_Humanitarian(Dataset):
         
 
                 
-                if label == 'informative':
-                    label = torch.tensor(1)
-                else:
-                    label = torch.tensor(0)
-                # print(f'image shape before transform: {image.shape}')
-                # apply transforms on image 
+                for l in self.label_dict.keys():
+                    if label == l:
+                        label = int(self.label_dict[l])
+                        break
                 if self.transform:
                     image = self.transform(image)
                 if self.target_transform:
                     label = self.target_transform(label)
+
+                if type(label) is not int:
+                    raise TypeError(f'Label must be an int, but got {type(label)}')
         finally:
             cursor.close()
 
