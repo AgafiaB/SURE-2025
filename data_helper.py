@@ -80,8 +80,6 @@ class SQLDataset_Humanitarian(Dataset):
         '''
         Returns the number of images in the database 
         '''
-    
-
         return len(self.possible_sql_idxs)
     
     # TODO: change this so that it uses the humanitarian classes you are using
@@ -123,8 +121,7 @@ class SQLDataset_Humanitarian(Dataset):
 
         return {'image': image, 'label': label}
     
-
-
+    
 
 def powerset_without_emptyset(items):
     '''
@@ -155,6 +152,8 @@ def ensure_rgb(img):
         raise TypeError("Input must be a numpy ndarray.")
     
 
+# TODO: ensure that images are normalized 
+# TODO: ensure that you are implementing the transformations correctly
 def apply_transformations(images, combo):
     features = []
     for t in combo:
