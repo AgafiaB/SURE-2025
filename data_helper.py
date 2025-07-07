@@ -50,6 +50,9 @@ class SQLDataset_Humanitarian(Dataset):
         
         label = self.label_dict[label] # convert label to int
         return img, label
+    
+    def get_label_dict(self): 
+        return self.label_dict
 
 def powerset_without_emptyset(items):
     '''
