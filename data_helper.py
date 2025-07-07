@@ -84,47 +84,47 @@ def ensure_rgb(img):
         raise TypeError("Input must be a numpy ndarray.")
     
 
-# TODO: ensure that images are normalized 
-# TODO: ensure that you are implementing the transformations correctly
 def apply_transformations(images, combo):
-    features = []
-    for t in combo:
-        if t is cv2.HuMoments:
-            imgs_grey = [cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img for img in images]
-            feats = [cv2.normalize(cv2.HuMoments(cv2.moments(im)).flatten(), None, 0, 255, cv2.NORM_MINMAX) for im in imgs_grey]
-        elif t is skimage.feature.graycomatrix:
-            imgs_grey = [cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img for img in images]
-            dists, angles = [1], [0]
-            feats = []
-            for im in imgs_grey:
-                glcm = skimage.feature.graycomatrix(im, distances=dists, angles=angles, symmetric=True, normed=True)
+    """
+    Applies a combination of transformations to a list of images.
+    Returns a 2D array: (num_images, total_feature_dim)
+    """
+    all_feats = []
+    for img in images:
+        img_feats = []
+        for t in combo:
+            if t is cv2.HuMoments:
+                im_grey = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img
+                feat = cv2.normalize(cv2.HuMoments(cv2.moments(im_grey)).flatten(), None, 0, 255, cv2.NORM_MINMAX)
+            elif t is skimage.feature.graycomatrix:
+                im_grey = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img
+                dists, angles = [1], [0]
+                glcm = skimage.feature.graycomatrix(im_grey, distances=dists, angles=angles, symmetric=True, normed=True)
                 diss = graycoprops(glcm, 'dissimilarity')
                 contrast = graycoprops(glcm, 'contrast')
-                cat = np.concatenate([diss, contrast], axis=1)
-                norm = cv2.normalize(cat, None, 0, 255, cv2.NORM_MINMAX).flatten()
-                feats.append(norm)
-        elif t is cv2.calcHist:
-            feats = [cv2.normalize(
-                        cv2.calcHist([img], [0,1,2], None, [8,8,8], [0,256]*3).flatten(),
-                        None, 0, 255, cv2.NORM_MINMAX).flatten() for img in images]
-        elif t is skimage.feature.local_binary_pattern:
-            imgs_grey = [cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img for img in images]
-            feats = []
-            for im in imgs_grey:
-                lbp = skimage.feature.local_binary_pattern(im, P=8, R=1)
+                correlation = graycoprops(glcm, 'correlation')
+                energy = graycoprops(glcm, 'energy')
+                homogeneity = graycoprops(glcm, 'homogeneity')
+                cat = np.concatenate([diss, contrast, correlation, energy, homogeneity], axis=1)
+                feat = cv2.normalize(cat, None, 0, 255, cv2.NORM_MINMAX).flatten()
+            elif t is cv2.calcHist:
+                feat = cv2.normalize(
+                    cv2.calcHist([img], [0,1,2], None, [8,8,8], [0,256]*3).flatten(),
+                    None, 0, 255, cv2.NORM_MINMAX).flatten()
+            elif t is skimage.feature.local_binary_pattern:
+                im_grey = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY) if img.ndim == 3 else img
+                lbp = skimage.feature.local_binary_pattern(im_grey, P=8, R=1)
                 hist, _ = np.histogram(lbp.ravel(), bins=10, range=(0, 10))
-                feats.append(hist.flatten())
-        else:
-            print(t)
-            raise ValueError(f'Unsupported transformation: {t}')
-        
-        features.append(np.stack(feats))
+                feat = hist.flatten()
+            else:
+                print(t)
+                raise ValueError(f'Unsupported transformation: {t}')
+            img_feats.append(feat)
+        # Concatenate all features for this image into a feature vector for one image and append to all_feats
+        all_feats.append(np.concatenate(img_feats))
 
-        for i, feature in enumerate(features): 
-            if len(feature.shape) > 1:
-                features[i] = feature.flatten()
-                
-    return np.concatenate(features, axis=0)
+    # returns (num_images, total_feature_dim), where each row corresponds to the concatenated features of one img
+    return np.stack(all_feats)
 
 def best_transformation(transformations, class1_imgs, class2_imgs):
     '''
@@ -138,11 +138,11 @@ def best_transformation(transformations, class1_imgs, class2_imgs):
     '''
     class1_imgs = [ensure_rgb(img) for img in class1_imgs]
     class2_imgs = [ensure_rgb(img) for img in class2_imgs]
+    # normalize all images to [0, 255] range
     class1_imgs = [cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX) for img in class1_imgs]
     class2_imgs = [cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX) for img in class2_imgs]
 
     combos = powerset_without_emptyset(transformations)
-    best_combo = None
     
     score_dict = {}
     for combo in tqdm(combos, total=len(combos)):
