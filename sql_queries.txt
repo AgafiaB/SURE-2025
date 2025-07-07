@@ -1,0 +1,8 @@
+use ai_proj_2025;
+
+CREATE TABLE six_humanitarian
+AS
+SELECT image_id, tweet_id, image_path, image_info, image_info_conf, image_human, image_human_conf, image_damage, image_damage_conf, image_url, `date` FROM Images WHERE image_human in ('other_relevant_information', 'affected_individuals', 'infrastructure_and_utility_damage', 'injured_or_dead_people', 'rescue_volunteering_or_donation_effort', 'not_humanitarian'); 
+
+CREATE INDEX idx
+ON six_humanitarian_labels (image_id);
