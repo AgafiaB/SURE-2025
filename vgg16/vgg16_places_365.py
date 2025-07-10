@@ -13,18 +13,20 @@ import numpy as np
 
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Input
-from tensorflow.keras.layer import Activation, Dense, Flatten
-from tensorflow.keras.layers.pooling import MaxPooling2D
+from tensorflow.keras.layers import Activation, Dense, Flatten
+from tensorflow.keras.layers import MaxPooling2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Conv2D
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.layer import Dropout
+from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import GlobalAveragePooling2D
 from tensorflow.keras.layers import GlobalMaxPooling2D
-from tensorflow.keras_applications.imagenet_utils import _obtain_input_shape
-from tensorflow.keras.engine.topology import get_source_inputs
-from tensorflow.keras.utils.data_utils import get_file
-from tensorflow.keras.utils import layer_utils
+from helper import _obtain_input_shape
+# from tensorflow.keras.applications.imagenet_utils import _obtain_input_shape -- OUTDATED
+from tensorflow.keras.utils import get_source_inputs
+# from tensorflow.keras.utils import convert_dense_weights_data_format -- OUTDATED
+from tensorflow.keras.utils import get_file
+# from tensorflow.keras.utils import layer_utils -- OUTDATED
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.imagenet_utils import preprocess_input
 
@@ -216,25 +218,28 @@ def VGG16_Places365(include_top=True, weights='places',
 
         model.load_weights(weights_path)
 
-        if K.backend() == 'theano':
-            layer_utils.convert_all_kernels_in_model(model)
+        # --- OUTDATED ---
+        # if K.backend() == 'theano':
+        #     layer_utils.convert_all_kernels_in_model(model)
 
-        if K.image_data_format() == 'channels_first':
-            if include_top:
-                maxpool = model.get_layer(name='block5_pool')
-                shape = maxpool.output_shape[1:]
-                dense = model.get_layer(name='fc1')
-                layer_utils.convert_dense_weights_data_format(dense, shape, 'channels_first')
 
-            if K.backend() == 'tensorflow':
-                warnings.warn('You are using the TensorFlow backend, yet you '
-                              'are using the Theano '
-                              'image data format convention '
-                              '(`image_data_format="channels_first"`). '
-                              'For best performance, set '
-                              '`image_data_format="channels_last"` in '
-                              'your Keras config '
-                              'at ~/.keras/keras.json.')
+        # --- OUTDATED ---
+        # if K.image_data_format() == 'channels_first':
+        #     if include_top:
+        #         maxpool = model.get_layer(name='block5_pool')
+        #         shape = maxpool.output_shape[1:]
+        #         dense = model.get_layer(name='fc1')
+        #         layer_utils.convert_dense_weights_data_format(dense, shape, 'channels_first')
+
+            # if K.backend() == 'tensorflow':
+            #     warnings.warn('You are using the TensorFlow backend, yet you '
+            #                   'are using the Theano '
+            #                   'image data format convention '
+            #                   '(`image_data_format="channels_first"`). '
+            #                   'For best performance, set '
+            #                   '`image_data_format="channels_last"` in '
+            #                   'your Keras config '
+            #                   'at ~/.keras/keras.json.')
 
     elif weights is not None:
         model.load_weights(weights)
