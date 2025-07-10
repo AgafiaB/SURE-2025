@@ -13,12 +13,12 @@ import numpy as np
 
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Input
-from tensorflow.keras.layers.core import Activation, Dense, Flatten
+from tensorflow.keras.layer import Activation, Dense, Flatten
 from tensorflow.keras.layers.pooling import MaxPooling2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Conv2D
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.layers.core import Dropout
+from tensorflow.keras.layer import Dropout
 from tensorflow.keras.layers import GlobalAveragePooling2D
 from tensorflow.keras.layers import GlobalMaxPooling2D
 from tensorflow.keras_applications.imagenet_utils import _obtain_input_shape
