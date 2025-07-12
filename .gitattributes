@@ -1,1 +1,9 @@
 dict_list* filter=lfs diff=lfs merge=lfs -text
+<<<<<<< HEAD
+<<<<<<< HEAD
+*.pth filter=lfs diff=lfs merge=lfs -text
+pytorchvgg16_places_365.pth filter=lfs diff=lfs merge=lfs -text
+=======
+>>>>>>> eaf9d1caf787e5d5285b5c85029517bd8f0d481b
+=======
+>>>>>>> eaf9d1caf787e5d5285b5c85029517bd8f0d481b
